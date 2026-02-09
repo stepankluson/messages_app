@@ -220,8 +220,18 @@ if uploaded_files:
             st.markdown("Graf ukazuje průměrné **skóre nálady**.")
             st.caption("🔍 Uvedená stupnice je zjištěná na základě výskytů pozitivních a negativních slov ve zprávách.")
 
-            pos_words = ["jo", "jj", "xd", "lol", "super", "diky", "top", "ok", "miluju", "haha"]
-            neg_words = ["ne", "nn", "nuda", "bolest", "sere", "kurva", "nasrat", "trapny"]
+            pos_words = [
+                    "dobře", "dobre", "skvěle", "skvele", "super", "pecka", "krása", "krasa",
+                    "díky", "diky", "děkuju", "miluju", "láska", "laska", "štěstí", "radost",
+                    "cenim", "respekt", "top", "bomba", "pohoda", "klídek", "win", "výhra"
+                ]
+            neg_words = [
+                    "ne", "nn", "nikdy", "odmítám", "špatně", "spatne", "hrozně", "hrozne", 
+                    "strašně", "strasne", "děs", "hrůza", "bolest", "smutek", "brečím", "škoda",
+                    "nenávidím", "nesnáším", "vadí", "štve", "sere", "nasrat", "hnus", "odpad",
+                    "fail", "chyba", "bída", "bida", "chcípám", "nuda", "stres", "nervy",
+                    "kurva", "píča", "pica", "piča", "kokot", "debil", "kretén", "sračka", "hovno"
+                ]
             
             def get_mood(t):
                 s = 0
