@@ -142,20 +142,24 @@ if uploaded_files:
 
         with tab1:
             col1, col2 = st.columns(2)
+            
             with col1:
                 st.subheader("🏆 Žebříček ukecanosti")
-                # Tady můžeš taky zkusit změnit barvu, třeba na oranžovou
-                st.bar_chart(df['sender_name'].value_counts(), color="#FF8C00") 
+                
+                chart_data = df['sender_name'].value_counts().reset_index()
+                
+                chart_data.columns = ["Jméno", "Počet zpráv"]
+                
+                st.bar_chart(chart_data, x="Jméno", y="Počet zpráv", color="#FF8C00") 
 
             with col2:
                 st.subheader("📅 Aktivita v čase")
                 if 'date' in df.columns:
-                    timeline = df.set_index('date').resample('W').size()
+                    timeline = df.set_index('date').resample('W').size().reset_index()
                     
-                    timeline.name = "Počet zpráv"
-                    timeline.index.name = "Datum"
+                    timeline.columns = ["Datum", "Počet zpráv"]
                     
-                    st.line_chart(timeline, color=["#00CC96"]) 
+                    st.line_chart(timeline, x="Datum", y="Počet zpráv", color=["#00CC96"]) 
                 else:
                     st.warning("Chybí časová data.")
 
@@ -203,8 +207,10 @@ if uploaded_files:
             mask = (df_s['sender_name'] != df_s['sender_name'].shift(1)) & (df_s['diff'] < pd.Timedelta(hours=4))
             
             speed_data = df_s[mask].groupby('sender_name')['diff'].median().dt.total_seconds()
-            
             speed_data = speed_data.sort_values(ascending=True)
+
+            speed_data.name = "Sekundy"
+            speed_data.index.name = "Jméno"
 
             st.bar_chart(speed_data, color="#FF4B4B")
 
@@ -232,9 +238,10 @@ if uploaded_files:
             df_work['mood'] = df_work['content'].apply(get_mood)
             
             mood_score = df_work.groupby('sender_name')['mood'].mean() * 100
-            
             mood_score = mood_score.sort_values(ascending=False)
 
+            mood_score.name = "Skóre nálady"
+            mood_score.index.name = "Jméno"
             st.bar_chart(mood_score, color="#FFD700")
 
         with tab5: # Hledání
