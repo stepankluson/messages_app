@@ -129,7 +129,7 @@ if uploaded_files:
 
         with tab2:
             st.subheader("Kdo komu odpovídá?")
-            st.write("Šipka ukazuje: 'Tenhle člověk reagoval na toho druhého'.")
+            st.write("Šipka ukazuje: 'Tenhle člověk reagoval na toho druhého'. (Funkce je vhodná hlavně pro skupinové chaty.)")
             
             df_net = df.sort_values('date').copy()
             df_net['target'] = df_net['sender_name'].shift(1)
