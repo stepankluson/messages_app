@@ -245,7 +245,7 @@ if uploaded_files:
             with col_search:
                 term = st.text_input("Zadej slovo nebo frázi:", placeholder="např. pivo, miluju, nestíhám...")
             with col_limit:
-                limit = st.number_input("Max zpráv", min_value=5, value=20, step=5)
+                limit = st.number_input("Max zpráv", min_value=5, value=5, step=5)
 
             if term:
                 # Filtrace (case=False znamená, že je jedno jestli napíšeš Pivo nebo pivo)
