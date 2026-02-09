@@ -93,7 +93,44 @@ if uploaded_files:
         
 
         st.success(f"Úspěšně načteno {len(df)} zpráv z {len(uploaded_files)} souborů!")
+
+        st.markdown("---")
+        st.header("🏆 Síň slávy")
+       
+        top_sender = df['sender_name'].value_counts().idxmax()
+        top_msg_count = df['sender_name'].value_counts().max()
         
+        df['msg_length'] = df['content'].str.len()
+        avg_lengths = df.groupby('sender_name')['msg_length'].mean()
+        top_writer = avg_lengths.idxmax()
+        top_writer_avg = int(avg_lengths.max())
+        
+        df['hour'] = df['date'].dt.hour
+        night_msgs = df[(df['hour'] >= 0) & (df['hour'] < 5)]
+        if not night_msgs.empty:
+            top_owl = night_msgs['sender_name'].value_counts().idxmax()
+            top_owl_count = night_msgs['sender_name'].value_counts().max()
+        else:
+            top_owl = "Nikdo (spíte?)"
+            top_owl_count = 0
+
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(label="👑 Největší Kecal", value=top_sender)
+            # st.markdown vypíše normální text. Hvězdičky dělají tučné písmo.
+            st.markdown(f"📝 **{top_msg_count}** zpráv") 
+            
+        with col2:
+            st.metric(label="📖 Spisovatel", value=top_writer)
+            st.markdown(f"📏 průměr **{top_writer_avg}** znaků")
+            
+        with col3:
+            st.metric(label="🦉 Noční sova", value=top_owl)
+            st.markdown(f"🌙 **{top_owl_count}** nočních zpráv")
+            
+        st.markdown("---")
+
         tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "📊 Přehled & Aktivita", 
             "🕸️ Sociomapa (Vztahy)", 
