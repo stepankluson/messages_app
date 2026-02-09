@@ -191,88 +191,108 @@ if uploaded_files:
             else:
                 st.error("Not enough interaction data.")
 
-        with tab3:
-            st.subheader("⏱️ Kdo z chatu odepisuje nejrychleji?")
-            if 'date' in df.columns:
-                df_speed = df.sort_values('date').copy()
-                df_speed['prev_sender'] = df_speed['sender_name'].shift(1)
-                df_speed['time_diff'] = df_speed['date'].diff()
-                
-                mask = (
-                    (df_speed['sender_name'] != df_speed['prev_sender']) & 
-                    (df_speed['time_diff'] > pd.Timedelta(seconds=5)) & 
-                    (df_speed['time_diff'] < pd.Timedelta(hours=4))
-                )
-                
-                valid_responses = df_speed[mask]
-                speed_stats = valid_responses.groupby('sender_name')['time_diff'].median().dt.total_seconds().sort_values()
-                st.bar_chart(speed_stats, color="#FFD700")
+        with tab3: 
+            st.subheader("⚡ Kdo je nejrychlejší v odepisování?")
+            
+            st.markdown("Graf ukazuje **medián** doby odezvy (běžná rychlost).")
+            st.caption("⏱️ Údaje jsou v **sekundách**. (Ignorujeme pauzy delší než 4 hodiny, např. spánek).")
+
+            df_s = df.sort_values('date').copy()
+            df_s['diff'] = df_s['date'].diff()
+            
+            mask = (df_s['sender_name'] != df_s['sender_name'].shift(1)) & (df_s['diff'] < pd.Timedelta(hours=4))
+            
+            speed_data = df_s[mask].groupby('sender_name')['diff'].median().dt.total_seconds()
+            
+            speed_data = speed_data.sort_values(ascending=True)
+
+            st.bar_chart(speed_data, color="#FF4B4B")
+
+        with tab4: 
+            st.subheader("😊 Kdo je největší pohodář a kdo pořád nadává?")
+            
+            st.markdown("Graf ukazuje průměrné **skóre nálady**.")
+            st.caption("🔍 Uvedená stupnice je zjištěná na základě výskytů pozitivních a negativních slov ve zprávách.")
+
+            pos_words = ["jo", "jj", "xd", "lol", "super", "diky", "top", "ok", "miluju", "haha"]
+            neg_words = ["ne", "nn", "nuda", "bolest", "sere", "kurva", "nasrat", "trapny"]
+            
+            def get_mood(t):
+                s = 0
+                for w in str(t).lower().split():
+                    if w in pos_words: s+=1
+                    elif w in neg_words: s-=1
+                return s
+            
+            if 'df_text' in locals():
+                df_work = df_text.copy()
             else:
-                st.warning("Missing time data.")
+                df_work = df[df['content'] != ''].copy()
 
-        with tab4:
-            st.subheader("😊 vs 🤬 Index pozitivity")
+            df_work['mood'] = df_work['content'].apply(get_mood)
             
-            positive_words = ["jo", "jojo", "jj", "jasně", "jasne", "přesně", "presne", "určitě", "souhlas", "yep", "jop", "xd", "xdd", "xddd", "lol", "lmao", "rofl", "haha", "hahaha", "hehe", ":d", ":dd", "super", "skvěle", "skvele", "pecka", "bomba", "top", "topovka", "luxus", "nice", "najs", "cool", "fajn", "dobře", "dobre", "pohoda", "klídek", "chill", "cenim", "respekt", "frajer", "krása", "krasa", "god", "goat", "legenda", "díky", "diky", "děkuju", "miluju", "láska", "laska", "srdce", "štěstí", "radost", "gg", "wp", "ez", "win", "výhra", "vyhra"]
-            negative_words = ["ne", "nn", "nene", "nikdy", "odmítám", "nesouhlasím", "kurva", "píča", "piča", "pica", "kokot", "debil", "idiot", "kretén", "kreten", "sračka", "sracka", "hovno", "prdel", "zmrd", "vyser", "nasrat", "fuck", "hnus", "odpad", "trash", "cringe", "bída", "bida", "fail", "chyba", "omg", "bruh", "smutek", "bolest", "au", "brečím", "škoda", "bohužel", "rip", "chcípám", "sere", "štve", "vadí", "nenávidím", "nesnáším", "otrava", "nuda", "noob", "bot", "report", "lagy", "prohra", "loss", "L"]
+            mood_score = df_work.groupby('sender_name')['mood'].mean() * 100
             
-            def get_sentiment(text):
-                text = str(text).lower()
-                for char in [".", ",", "!", "?", "(", ")", '"']:
-                    text = text.replace(char, "")
-                words = text.split()
-                score = 0
-                for w in words:
-                    if w in positive_words: score += 1
-                    elif w in negative_words: score -= 1
-                return score
+            mood_score = mood_score.sort_values(ascending=False)
 
-            df_mood = df_text.copy()
-            df_mood['sentiment_score'] = df_mood['content'].apply(get_sentiment)
-            mood_ranking = df_mood.groupby('sender_name')['sentiment_score'].mean() * 100
-            
-            st.bar_chart(mood_ranking)
-            st.info("💡 Kladná čísla = Pozitivní vibe. Záporná čísla = Negativní vibe.")
+            st.bar_chart(mood_score, color="#FFD700")
 
-        with tab5:
-            st.subheader("Prozkoumej výskyt určitého slova")
+        with tab5: # Hledání
+            st.subheader("🔍 Napiš slovo u kterého tě zajímá četnost v chatu")
             
-            search_term = st.text_input("Napiš slovo nebo frázi, kterou chceš najít (např. 'pivo', 'nevím', 'promiň'):")
+            # 1. Vylepšené vyhledávací pole
+            col_search, col_limit = st.columns([3, 1])
+            with col_search:
+                term = st.text_input("Zadej slovo nebo frázi:", placeholder="např. pivo, miluju, nestíhám...")
+            with col_limit:
+                limit = st.number_input("Max zpráv", min_value=5, value=20, step=5)
 
-            if search_term: 
-                term = search_term.lower()
-            
-                mask = df['content'].astype(str).str.contains(term, case=False, regex=False)
-                results = df[mask]
+            if term:
+                # Filtrace (case=False znamená, že je jedno jestli napíšeš Pivo nebo pivo)
+                mask = df['content'].str.contains(term, case=False, na=False)
+                results = df[mask].sort_values('date', ascending=False) # Od nejnovějších
                 
                 if not results.empty:
-                    st.success(f"Nalezeno **{len(results)}** zpráv obsahujících '{search_term}'!")
+                    st.success(f"Nalezeno **{len(results)}** zpráv.")
                     
-                    col1, col2 = st.columns(2)
+                    # --- A) STATISTIKA KDO TO ŘÍKÁ ---
+                    st.markdown("### 📊 Kdo to slovo používá nejčastěji?")
+                    counts = results['sender_name'].value_counts().head(5)
+                    st.bar_chart(counts, color="#0083B8") # Modrá barva
                     
-                    with col1:
-                        st.markdown("### 🏆 Kdo to píše nejčastěji?")
-                        counts = results['sender_name'].value_counts()
-                        st.bar_chart(counts)
+                    st.divider()
+
+                    # --- B) VÝPIS ZPRÁV JAKO CHAT ---
+                    st.markdown("### 💬 Poslední zmínky v chatu")
+                    
+                    # Funkce pro zvýraznění slova (Highlighter)
+                    def highlight_text(text, word):
+                        # Použijeme Regular Expression pro náhradu bez ohledu na velikost písmen
+                        pattern = re.compile(re.escape(word), re.IGNORECASE)
+                        # Nahradíme nalezené slovo tím samým slovem, ale tučným a červeným
+                        return pattern.sub(lambda m: f"**:red[{m.group(0)}]**", text)
+
+                    # Smyčka přes nalezené zprávy (limitujeme počet, ať se to nezaseká)
+                    for i, row in results.head(limit).iterrows():
+                        sender = row['sender_name']
+                        msg_text = row['content']
+                        msg_date = row['date'].strftime("%d.%m.%Y %H:%M")
                         
-                    with col2:
-                        st.markdown("### 📜 Poslední zmínky")
+                        # Zvýrazníme hledané slovo
+                        highlighted_msg = highlight_text(msg_text, term)
                         
-                        ukazka = results[['date', 'sender_name', 'content']].sort_values('date', ascending=False).head(10)
-                        st.dataframe(ukazka, use_container_width=True)
+                        # Vykreslení bubliny (st.chat_message)
+                        with st.chat_message(sender):
+                            st.write(f"**{sender}** ({msg_date})")
+                            st.markdown(highlighted_msg)
+                            
+                    if len(results) > limit:
+                        st.info(f"... a dalších {len(results) - limit} zpráv (zvyš limit nahoře pro zobrazení).")
                         
-                    st.markdown("### 📈 Trend slova v čase")
-                    if 'date' in df.columns:
-                        trend = results.set_index('date').resample('D').size()
-                        
-                        trend.name = "Počet výskytů"  
-                        trend.index.name = "Datum"    
-                        
-                        st.bar_chart(trend) 
-                        
-                        st.caption("Graf ukazuje, kolikrát za měsíc padlo toto slovo.")
                 else:
-                    st.warning(f"Slovo '{search_term}' se v chatu nikde nevyskytuje. Jste slušní lidé! (Nebo to píšete jinak).")
+                    st.warning(f"Slovo '{term}' nikdo nikdy nenapsal. 🤷‍♂️")
+            else:
+                st.info("👆 Napiš něco do vyhledávání.")
 
         with tab6:
             st.subheader("🔥 Kdy to v chatu nejvíc žije?")
