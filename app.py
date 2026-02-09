@@ -19,7 +19,6 @@ def fix_encoding(text):
 
 def parse_whatsapp(text_content):
     """Převede WhatsApp TXT na seznam zpráv."""
-    # Hledá řádky typu: 20.1.2024 14:30 - Pepa: Ahoj
     pattern = r'^(\d{1,2}\.\d{1,2}\.\d{2,4},? \s?\d{1,2}:\d{2}:?\d{0,2}) - (.*?): (.*)$'
     messages = []
     
@@ -34,7 +33,6 @@ def parse_whatsapp(text_content):
                 'source': 'whatsapp'
             })
         elif messages: 
-            # Pokud řádek nezačíná datem, je to pokračování minulé zprávy
             messages[-1]['content'] += " " + line.strip()
             
     return messages
@@ -61,17 +59,14 @@ if uploaded_files:
     with st.spinner('Slepuji soubory a chroupu data... 🍪'):
         for file in uploaded_files:
             try:
-                # 1. FACEBOOK (JSON)
                 if file.name.endswith('.json'):
                     data = json.load(file)
                     if 'messages' in data:
                         for m in data['messages']:
-                            m['source'] = 'facebook' # Označíme původ
+                            m['source'] = 'facebook' 
                         all_messages.extend(data['messages'])
                 
-                # 2. WHATSAPP (TXT)
                 elif file.name.endswith('.txt'):
-                    # Přečteme textový soubor
                     string_data = file.read().decode("utf-8")
                     wa_msgs = parse_whatsapp(string_data)
                     all_messages.extend(wa_msgs)
